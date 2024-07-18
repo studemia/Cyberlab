@@ -1,0 +1,60 @@
+# Define a function to check Windows version
+function Check-WindowsVersion {
+    $version = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion").ReleaseId
+    if ($version -lt 1903) {
+        Write-Host "Windows 10 version 1903 or higher is required. Please update your Windows."
+        exit 1
+    }
+}
+
+# Define a function to enable WSL and Virtual Machine Platform
+function Enable-WSL {
+    Write-Host "Enabling WSL..."
+    dism.exe /online /enable-feature /featurename:Microsoft-Windows-Subsystem-Linux /all /norestart
+    Write-Host "Enabling Virtual Machine Platform..."
+    dism.exe /online /enable-feature /featurename:VirtualMachinePlatform /all /norestart
+}
+
+# Define a function to set WSL 2 as default
+function Set-WSL2Default {
+    Write-Host "Setting WSL 2 as the default version..."
+    wsl --set-default-version 2
+}
+
+# Define a function to download and install the Linux kernel update package
+function Install-LinuxKernel {
+    Write-Host "Downloading and installing the Linux kernel update package..."
+    Invoke-WebRequest -Uri https://wslstorestorage.blob.core.windows.net/wslblob/wsl_update_x64.msi -OutFile $env:TEMP\wsl_update_x64.msi
+    Start-Process -FilePath msiexec.exe -ArgumentList "/i $env:TEMP\wsl_update_x64.msi /quiet /norestart" -Wait
+}
+
+# Define a function to install Kali Linux
+function Install-KaliLinux {
+    Write-Host "Installing Kali Linux..."
+    wsl --install -d kali-linux
+}
+
+# Define a function to launch Kali Linux
+function Launch-KaliLinux {
+    Write-Host "Launching Kali Linux..."
+    wsl -d kali-linux
+}
+
+# Define a function to check and install WSL components
+function Install-WSLComponents {
+    Check-WindowsVersion
+    Enable-WSL
+    Set-WSL2Default
+    Install-LinuxKernel
+    Install-KaliLinux
+    Launch-KaliLinux
+}
+
+# Check if the script is running with administrative privileges
+if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    Write-Host "This script must be run as an administrator. Please restart PowerShell with administrative privileges."
+    exit 1
+}
+
+# Start the installation process
+Install-WSLComponents
