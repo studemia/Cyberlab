@@ -1,0 +1,46 @@
+#!/bin/bash
+
+# Check if the script is run as root
+if [ "$EUID" -ne 0 ]; then
+  echo "Please run as root"
+  exit
+fi
+
+# Update package list
+apt update
+
+# Install Node.js and npm
+apt install -y nodejs npm
+
+# Navigate to the desired installation directory
+cd ~/Documents
+
+# Clone the Juice Shop repository if it doesn't exist
+if [ ! -d "juice-shop" ]; then
+  git clone https://github.com/juice-shop/juice-shop.git
+fi
+
+# Navigate into the Juice Shop directory
+cd juice-shop
+
+# Install dependencies
+npm install
+
+# Modify package.json to listen on all network interfaces
+sed -i 's/"start": "node app"/"start": "cross-env PORT=3000 HOST=0.0.0.0 node app"/' package.json
+
+# Ensure cross-env is installed
+npm install cross-env
+
+# Start the Juice Shop application
+npm start &
+
+# Wait for the application to start
+sleep 10
+
+# Verify the application is running
+if curl -s http://localhost:3000 | grep -q "OWASP Juice Shop"; then
+  echo "OWASP Juice Shop is running and accessible at http://localhost:3000"
+else
+  echo "Failed to start OWASP Juice Shop"
+fi
